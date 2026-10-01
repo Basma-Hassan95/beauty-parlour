@@ -13,87 +13,101 @@ if (typeof window !== "undefined") {
 
 export default function BridalJourney() {
   const [playVideo, setPlayVideo] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
   const pinContainerRef = useRef<HTMLDivElement>(null);
   const horizontalTrackRef = useRef<HTMLDivElement>(null);
-  const scrollWrapperRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
       if (!horizontalTrackRef.current || !pinContainerRef.current) return;
 
-      const mm = gsap.matchMedia();
+      const track = horizontalTrackRef.current;
 
-      mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
-        const track = horizontalTrackRef.current;
-        if (!track) return;
+      const getScrollAmount = () => {
+        if (!track) return 0;
+        return Math.max(0, track.scrollWidth - window.innerWidth + 100);
+      };
 
-        const totalWidth = track.scrollWidth - window.innerWidth + 120;
-
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: pinContainerRef.current,
-            pin: true,
-            scrub: 1,
-            start: "top top",
-            end: () => `+=${totalWidth + 300}`,
-            invalidateOnRefresh: true,
+      const tween = gsap.to(track, {
+        x: () => -getScrollAmount(),
+        ease: "none",
+        scrollTrigger: {
+          trigger: pinContainerRef.current,
+          pin: true,
+          scrub: 1,
+          start: "top top",
+          end: () => `+=${getScrollAmount() + 200}`,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            if (progressBarRef.current) {
+              gsap.set(progressBarRef.current, { scaleX: self.progress });
+            }
+            const stepIndex = Math.min(
+              siteConfig.bridalJourney.length - 1,
+              Math.floor(self.progress * siteConfig.bridalJourney.length)
+            );
+            setActiveStep(stepIndex);
           },
-        });
-
-        tl.to(track, {
-          x: -totalWidth,
-          ease: "none",
-        });
-
-        if (progressBarRef.current) {
-          tl.to(
-            progressBarRef.current,
-            {
-              scaleX: 1,
-              ease: "none",
-            },
-            0
-          );
-        }
+        },
       });
 
-      return () => mm.revert();
+      // Force refresh for accurate measurements
+      const timer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 300);
+
+      return () => {
+        clearTimeout(timer);
+        tween.kill();
+      };
     },
     { scope: sectionRef }
   );
 
-  const scrollLeft = () => {
-    if (scrollWrapperRef.current) {
-      scrollWrapperRef.current.scrollBy({ left: -360, behavior: "smooth" });
-    }
+  const slideToStep = (index: number) => {
+    if (!horizontalTrackRef.current) return;
+    const track = horizontalTrackRef.current;
+    const maxScroll = Math.max(0, track.scrollWidth - window.innerWidth + 100);
+    const targetX = -((maxScroll / (siteConfig.bridalJourney.length - 1)) * index);
+
+    gsap.to(track, {
+      x: targetX,
+      duration: 0.6,
+      ease: "power2.out",
+    });
+    setActiveStep(index);
   };
 
-  const scrollRight = () => {
-    if (scrollWrapperRef.current) {
-      scrollWrapperRef.current.scrollBy({ left: 360, behavior: "smooth" });
-    }
+  const handlePrev = () => {
+    const nextIdx = Math.max(0, activeStep - 1);
+    slideToStep(nextIdx);
+  };
+
+  const handleNext = () => {
+    const nextIdx = Math.min(siteConfig.bridalJourney.length - 1, activeStep + 1);
+    slideToStep(nextIdx);
   };
 
   return (
     <section id="bridal" ref={sectionRef} className="relative bg-[#FFF8F3] text-[#2B1B17] bg-noise overflow-hidden border-t border-[#D98C8C]/20">
-      <div ref={pinContainerRef} className="min-h-screen flex flex-col justify-center py-20 px-6 lg:px-16">
+      <div ref={pinContainerRef} className="min-h-screen flex flex-col justify-center py-16 px-6 lg:px-12">
         {/* Section Header */}
-        <div className="max-w-4xl mx-auto text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#2B1B17] text-xs font-semibold text-[#C9A25D] tracking-widest uppercase mb-4 border border-[#C9A25D]/30 shadow-sm">
+        <div className="max-w-4xl mx-auto text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#2B1B17] text-xs font-semibold text-[#C9A25D] tracking-widest uppercase mb-3 border border-[#C9A25D]/30 shadow-sm">
             <Crown className="w-3.5 h-3.5 text-[#D98C8C]" />
             <span>EXCLUSIVITY FOR BRIDES</span>
           </div>
           <h2 className="font-cormorant text-fluid-h2 font-bold text-[#2B1B17]">
             The Signature <span className="text-[#D98C8C] italic">Bridal Journey</span>
           </h2>
-          <p className="text-[#2B1B17]/80 text-fluid-body max-w-2xl mx-auto font-light mt-2">
+          <p className="text-[#2B1B17]/80 text-fluid-body max-w-2xl mx-auto font-light mt-1">
             From initial consultation to the final touch-up, every step is designed to give you a stress-free, luminous wedding glow.
           </p>
 
           {/* TikTok Live Video Showcase Feature Card */}
-          <div className="mt-8 max-w-sm sm:max-w-md mx-auto rounded-3xl overflow-hidden bg-white border border-[#D98C8C]/40 p-4 shadow-xl space-y-3">
+          <div className="mt-6 max-w-sm sm:max-w-md mx-auto rounded-3xl overflow-hidden bg-white border border-[#D98C8C]/40 p-4 shadow-xl space-y-3">
             <div className="flex items-center justify-between text-xs text-[#D98C8C] font-mono">
               <span className="flex items-center gap-1.5 font-bold text-[#D98C8C]">
                 <Video className="w-4 h-4 animate-pulse" />
@@ -111,7 +125,7 @@ export default function BridalJourney() {
             </div>
 
             {/* Video Container */}
-            <div className="w-full h-80 rounded-2xl overflow-hidden bg-[#2B1B17] shadow-inner relative group">
+            <div className="w-full h-72 rounded-2xl overflow-hidden bg-[#2B1B17] shadow-inner relative group">
               {playVideo ? (
                 <iframe
                   src="https://www.tiktok.com/embed/v2/7685342881573244180"
@@ -132,8 +146,8 @@ export default function BridalJourney() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-black/45 flex flex-col items-center justify-center space-y-3">
-                    <div className="w-16 h-16 rounded-full bg-[#D98C8C] text-[#FFF8F3] flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:bg-[#C9A25D] transition-all duration-300">
-                      <Play className="w-7 h-7 fill-current ml-1" />
+                    <div className="w-14 h-14 rounded-full bg-[#D98C8C] text-[#FFF8F3] flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:bg-[#C9A25D] transition-all duration-300">
+                      <Play className="w-6 h-6 fill-current ml-1" />
                     </div>
                     <span className="px-4 py-1.5 rounded-full bg-[#2B1B17]/90 text-[#FFF8F3] text-xs font-semibold uppercase tracking-wider border border-[#D98C8C]/30 shadow-lg">
                       Play Transformation Video
@@ -144,46 +158,50 @@ export default function BridalJourney() {
             </div>
           </div>
 
-          {/* Controls & Progress Bar Line */}
-          <div className="flex items-center justify-between max-w-2xl mx-auto mt-8">
+          {/* Navigation Controls & Progress Bar Line */}
+          <div className="flex items-center justify-between max-w-2xl mx-auto mt-6">
             <button
-              onClick={scrollLeft}
-              className="w-10 h-10 rounded-full bg-white border border-[#D98C8C]/40 text-[#2B1B17] hover:bg-[#D98C8C] hover:text-white transition-all flex items-center justify-center shadow-md"
-              aria-label="Scroll left"
+              onClick={handlePrev}
+              data-cursor-hover
+              className="w-10 h-10 rounded-full bg-white border border-[#D98C8C]/40 text-[#2B1B17] hover:bg-[#D98C8C] hover:text-white transition-all flex items-center justify-center shadow-md active:scale-95"
+              aria-label="Previous step"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
 
-            <div className="flex-1 mx-4 h-1.5 bg-[#D98C8C]/20 rounded-full overflow-hidden">
+            <div className="flex-1 mx-4 h-2 bg-[#D98C8C]/20 rounded-full overflow-hidden">
               <div
                 ref={progressBarRef}
-                className="h-full bg-gradient-to-r from-[#D98C8C] via-[#C9A25D] to-[#D98C8C] origin-left scale-x-0"
+                className="h-full bg-gradient-to-r from-[#D98C8C] via-[#C9A25D] to-[#D98C8C] origin-left scale-x-0 transition-transform duration-100"
               />
             </div>
 
             <button
-              onClick={scrollRight}
-              className="w-10 h-10 rounded-full bg-white border border-[#D98C8C]/40 text-[#2B1B17] hover:bg-[#D98C8C] hover:text-white transition-all flex items-center justify-center shadow-md"
-              aria-label="Scroll right"
+              onClick={handleNext}
+              data-cursor-hover
+              className="w-10 h-10 rounded-full bg-white border border-[#D98C8C]/40 text-[#2B1B17] hover:bg-[#D98C8C] hover:text-white transition-all flex items-center justify-center shadow-md active:scale-95"
+              aria-label="Next step"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Horizontal Track Container with Smooth Manual Overflow Support */}
-        <div ref={scrollWrapperRef} className="w-full overflow-x-auto scrollbar-none py-4 scroll-smooth">
+        {/* Clean Overflow Hidden Track Wrapper */}
+        <div className="relative w-full overflow-hidden py-2">
           <div
             ref={horizontalTrackRef}
-            className="flex flex-row gap-6 lg:gap-12 w-max px-6 lg:px-12 items-stretch"
+            className="flex flex-row gap-6 lg:gap-10 w-max px-4 lg:px-12 items-stretch will-change-transform"
           >
             {siteConfig.bridalJourney.map((item, index) => (
               <div
                 key={index}
-                className="w-[85vw] sm:w-[24rem] lg:w-[28rem] shrink-0 p-8 rounded-3xl bg-white border border-[#D98C8C]/30 hover:border-[#C9A25D] transition-all duration-300 flex flex-col justify-between shadow-xl relative group"
+                className={`w-[85vw] sm:w-[24rem] lg:w-[28rem] shrink-0 p-8 rounded-3xl bg-white border transition-all duration-300 flex flex-col justify-between shadow-xl relative group ${
+                  activeStep === index ? "border-[#C9A25D] ring-2 ring-[#C9A25D]/20" : "border-[#D98C8C]/30"
+                }`}
               >
                 {/* Step Badge */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-6">
                   <span className="font-mono text-4xl font-bold text-[#C9A25D]">
                     {item.step}
                   </span>
@@ -219,7 +237,7 @@ export default function BridalJourney() {
         </div>
 
         {/* CTA Footer */}
-        <div className="mt-12 text-center flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="mt-8 text-center flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             href={siteConfig.whatsappLink}
             target="_blank"
