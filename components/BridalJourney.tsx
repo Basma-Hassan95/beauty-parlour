@@ -2,15 +2,21 @@
 
 import { useState, useRef } from "react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { siteConfig } from "@/lib/siteConfig";
-import { Crown, Sparkles, CheckCircle2, Video, ExternalLink, Play } from "lucide-react";
+import { Crown, Sparkles, CheckCircle2, Video, ExternalLink, Play, ChevronLeft, ChevronRight } from "lucide-react";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function BridalJourney() {
   const [playVideo, setPlayVideo] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
   const pinContainerRef = useRef<HTMLDivElement>(null);
   const horizontalTrackRef = useRef<HTMLDivElement>(null);
+  const scrollWrapperRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -31,7 +37,7 @@ export default function BridalJourney() {
             pin: true,
             scrub: 1,
             start: "top top",
-            end: () => `+=${totalWidth}`,
+            end: () => `+=${totalWidth + 300}`,
             invalidateOnRefresh: true,
           },
         });
@@ -57,6 +63,18 @@ export default function BridalJourney() {
     },
     { scope: sectionRef }
   );
+
+  const scrollLeft = () => {
+    if (scrollWrapperRef.current) {
+      scrollWrapperRef.current.scrollBy({ left: -360, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollWrapperRef.current) {
+      scrollWrapperRef.current.scrollBy({ left: 360, behavior: "smooth" });
+    }
+  };
 
   return (
     <section id="bridal" ref={sectionRef} className="relative bg-[#FFF8F3] text-[#2B1B17] bg-noise overflow-hidden border-t border-[#D98C8C]/20">
@@ -126,25 +144,43 @@ export default function BridalJourney() {
             </div>
           </div>
 
-          {/* Desktop Progress Bar Line */}
-          <div className="hidden lg:block relative w-full max-w-2xl mx-auto h-1.5 bg-[#D98C8C]/20 rounded-full mt-8 overflow-hidden">
-            <div
-              ref={progressBarRef}
-              className="absolute left-0 top-0 bottom-0 w-full bg-gradient-to-r from-[#D98C8C] via-[#C9A25D] to-[#D98C8C] origin-left scale-x-0"
-            />
+          {/* Controls & Progress Bar Line */}
+          <div className="flex items-center justify-between max-w-2xl mx-auto mt-8">
+            <button
+              onClick={scrollLeft}
+              className="w-10 h-10 rounded-full bg-white border border-[#D98C8C]/40 text-[#2B1B17] hover:bg-[#D98C8C] hover:text-white transition-all flex items-center justify-center shadow-md"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex-1 mx-4 h-1.5 bg-[#D98C8C]/20 rounded-full overflow-hidden">
+              <div
+                ref={progressBarRef}
+                className="h-full bg-gradient-to-r from-[#D98C8C] via-[#C9A25D] to-[#D98C8C] origin-left scale-x-0"
+              />
+            </div>
+
+            <button
+              onClick={scrollRight}
+              className="w-10 h-10 rounded-full bg-white border border-[#D98C8C]/40 text-[#2B1B17] hover:bg-[#D98C8C] hover:text-white transition-all flex items-center justify-center shadow-md"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* Horizontal Track Container */}
-        <div className="w-full overflow-visible">
+        {/* Horizontal Track Container with Smooth Manual Overflow Support */}
+        <div ref={scrollWrapperRef} className="w-full overflow-x-auto scrollbar-none py-4 scroll-smooth">
           <div
             ref={horizontalTrackRef}
-            className="flex flex-col lg:flex-row gap-8 lg:gap-12 lg:w-max lg:px-12 items-stretch"
+            className="flex flex-row gap-6 lg:gap-12 w-max px-6 lg:px-12 items-stretch"
           >
             {siteConfig.bridalJourney.map((item, index) => (
               <div
                 key={index}
-                className="w-full lg:w-[28rem] shrink-0 p-8 rounded-3xl bg-white border border-[#D98C8C]/30 hover:border-[#C9A25D] transition-all duration-300 flex flex-col justify-between shadow-xl relative group"
+                className="w-[85vw] sm:w-[24rem] lg:w-[28rem] shrink-0 p-8 rounded-3xl bg-white border border-[#D98C8C]/30 hover:border-[#C9A25D] transition-all duration-300 flex flex-col justify-between shadow-xl relative group"
               >
                 {/* Step Badge */}
                 <div className="flex items-center justify-between mb-8">
